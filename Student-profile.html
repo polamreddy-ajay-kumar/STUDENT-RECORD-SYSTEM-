@@ -1,1 +1,115 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="description" content="Professional student profile"><title>STUDENT RECORD SYSTEM</title><link rel="stylesheet" href="style.css"></head><body class="profile-page"><div class="profile-shell"><header class="profile-top"><div><p class="eyebrow">STUDENT RECORD SYSTEM</p><h1>Student Profile</h1></div><div><button class="secondary" onclick="history.back()">← Back</button> <button class="primary" onclick="window.print()">Print Profile</button></div></header><main id="profileRoot"></main></div><script src="student-profile.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Profile</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="profile-page">
+    <div class="profile-shell">
+      <div class="profile-top">
+        <div>
+          <p class="eyebrow">STUDENT RECORD SYSTEM</p>
+          <h1>Student Profile</h1>
+        </div>
+        <button class="secondary" type="button" onclick="window.close()">Close</button>
+      </div>
+      <div id="profileContent">
+        <div class="card"><h2>Loading student details...</h2></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const content = document.getElementById('profileContent');
+      const params = new URLSearchParams(window.location.search);
+
+      const escapeHtml = value => String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      const get = (key, fallback = 'Not provided') => {
+        const value = student && student[key];
+        return value === undefined || value === null || value === '' ? fallback : value;
+      };
+      const initials = name => String(name || '?').split(/\s+/)
+        .map(word => word[0]).slice(0, 2).join('').toUpperCase();
+      const detail = (label, value) =>
+        `<div class="detail"><small>${escapeHtml(label)}</small><b>${escapeHtml(value)}</b></div>`;
+
+      let student = null;
+      try {
+        const saved = sessionStorage.getItem('srs_preview_student');
+        if (saved) student = JSON.parse(saved);
+
+        const user = params.get('user');
+        const id = params.get('id');
+        if (!student || (id && String(student.studentId) !== String(id))) {
+          const records = JSON.parse(localStorage.getItem(`srs_students_${user}`) || '[]');
+          student = records.find(item => String(item.studentId) === String(id)) || null;
+        }
+      } catch (error) {
+        student = null;
+      }
+
+      if (!student) {
+        content.innerHTML = `<div class="card">
+          <h2>Student details not found</h2>
+          <p class="muted">Please close this page and click Preview again from the Students list.</p>
+        </div>`;
+        return;
+      }
+
+      const year = String(student.year || '');
+      const suffix = year === '1' ? 'st' : year === '2' ? 'nd' : year === '3' ? 'rd' : 'th';
+      const photo = student.photo
+        ? `<img class="profile-big-photo" src="${escapeHtml(student.photo)}" alt="Student photo">`
+        : `<div class="profile-fallback">${escapeHtml(initials(student.name))}</div>`;
+
+      content.innerHTML = `
+        <section class="profile-hero">
+          ${photo}
+          <div>
+            <p class="eyebrow">${escapeHtml(get('program'))} · ${escapeHtml(year + suffix)} YEAR</p>
+            <h2>${escapeHtml(get('name'))}</h2>
+            <div class="profile-meta">
+              <span>${escapeHtml(get('studentId'))}</span>
+              <span>${escapeHtml(get('department'))}</span>
+              <span>Section ${escapeHtml(get('section'))}</span>
+            </div>
+          </div>
+          <div class="profile-score">${Number(student.cgpa || 0).toFixed(2)}<small>CGPA</small></div>
+        </section>
+        <div class="profile-grid">
+          <section class="card profile-card"><h3>Academic Information</h3><div class="detail-grid">
+            ${detail('Attendance', `${get('attendance', '0')}%`)}
+            ${detail('Semester', get('semester'))}${detail('Current Backlogs', get('backlogs', '0'))}
+            ${detail('Credits Earned', get('credits', '0'))}${detail('Class Rank', get('rank'))}
+            ${detail('Academic Remarks', get('remarks'))}
+          </div></section>
+          <section class="card profile-card"><h3>Personal Information</h3><div class="detail-grid">
+            ${detail('Date of Birth', get('dob'))}${detail('Gender', get('gender'))}
+            ${detail('Blood Group', get('bloodGroup'))}${detail('Nationality', get('nationality'))}
+            ${detail('Email', get('email'))}${detail('Mobile Number', get('phone'))}
+          </div></section>
+          <section class="card profile-card"><h3>College & Admission</h3><div class="detail-grid">
+            ${detail('Registration No.', get('registrationNo'))}${detail('Admission No.', get('admissionNo'))}
+            ${detail('Batch', get('batch'))}${detail('Admission Date', get('admissionDate'))}
+            ${detail('College Email', get('collegeEmail'))}${detail('Portal Status', get('portalStatus'))}
+          </div></section>
+          <section class="card profile-card"><h3>Parent / Guardian Information</h3><div class="detail-grid">
+            ${detail('Guardian Name', get('guardianName'))}${detail('Relation', get('guardianRelation'))}
+            ${detail('Guardian Mobile', get('guardianPhone'))}${detail('Guardian Email', get('guardianEmail'))}
+            ${detail('Occupation', get('guardianOccupation'))}
+          </div></section>
+          <section class="card profile-card profile-full"><h3>Address</h3><div class="detail-grid">
+            ${detail('Permanent Address', get('address'))}${detail('City', get('city'))}
+            ${detail('State', get('state'))}${detail('PIN Code', get('pin'))}
+          </div></section>
+        </div>`;
+    }());
+  </script>
+</body>
+</html>
